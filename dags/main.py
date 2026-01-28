@@ -41,7 +41,7 @@ def pipeline():
             collector.db.insert_data(data['user'], 'raw_user')
 
     extracted = task_extract_data()
-    transformed = task_transform_data()
+    transformed = task_transform_data(extracted)
     [
         task_load_crm_deal(transformed),
         task_load_crm_stage(transformed),
