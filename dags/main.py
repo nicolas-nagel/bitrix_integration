@@ -12,33 +12,31 @@ from include.src.data.bitrix_collector import BitrixCollector
 )
 def pipeline():
 
-    collector = BitrixCollector()
-
     @task
     def task_extract_data():
-        data = collector.get_data()
-        return data
+        collector = BitrixCollector()
+        return collector.get_data()
         
 
     @task
     def task_transform_data(data):
-        data = collector.transform_data()
-        return data
+        collector = BitrixCollector()
+        return collector.transform_data()
 
     @task
     def task_load_crm_deal(data):
         if 'crm_deal' in data:
-            collector.db.insert_data(data['crm_deal'], 'raw_crm_deal')
+            BitrixCollector().db.insert_data(data['crm_deal'], 'raw_crm_deal')
 
     @task
     def task_load_crm_stage(data):
         if 'crm_deal_stage_history' in data:
-            collector.db.insert_data(data['crm_deal_stage_history'], 'raw_crm_deal_stage_history')
+            BitrixCollector().db.insert_data(data['crm_deal_stage_history'], 'raw_crm_deal_stage_history')
 
     @task
     def task_load_crm_user(data):
         if 'user' in data:
-            collector.db.insert_data(data['user'], 'raw_user')
+            BitrixCollector().db.insert_data(data['user'], 'raw_user')
 
     extracted = task_extract_data()
     transformed = task_transform_data(extracted)
