@@ -21,7 +21,7 @@ def pipeline():
         
 
     @task
-    def task_transform_data():
+    def task_transform_data(data):
         data = collector.transform_data()
         return data
 
