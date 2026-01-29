@@ -8,7 +8,9 @@ from include.src.data.bitrix_collector import BitrixCollector
     description='Pipeline de Dados das Tabelas do Bitrix para SQL Server',
     schedule='0 7,12,17,22 * * *',
     start_date=datetime(2026, 1, 29),
-    catchup=False
+    catchup=False,
+    max_active_runs=1,
+    tags=['bitrix', 'sql-server', 'elt']
 )
 def pipeline():
 
