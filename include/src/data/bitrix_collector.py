@@ -34,6 +34,7 @@ class BitrixCollector:
 
         self.URL = f'https://{self.SERVER_ADDRESS}/{self.RELATIVE_PATH}?token={self.SECRET_KEY}'
         self.tables: List[str] = ['crm_deal', 'crm_deal_stage_history', 'user']
+        self.data: Dict[str, Any] = {}
 
     def start(self) -> None:
         logger.info('Iniciando Pipeline de Dados...')
@@ -61,7 +62,6 @@ class BitrixCollector:
         """
         logger.info('Iniciando Coleta de Dados...')
 
-        data: Dict[str, Any] = {}
         try:
             for table in self.tables:
                 response = requests.get(url=f'{self.URL}&table={table}')
@@ -72,14 +72,14 @@ class BitrixCollector:
                     logger.info(f'Endpoint: {table} Coletado com sucesso.')
 
             logger.info(f'{len(self.data)} arquivos coletados com sucesso.')
-            return data
+            return self.data
         
         except Exception as e:
             logger.error(f'Erro ao coletar os dados: {str(e)}')
-            data = {}
+            self.data = {}
             raise
                     
-    def transform_data(self, data: Dict[str, Any]) -> Dict[str, pd.DataFrame]:
+    def transform_data(self) -> Dict[str, pd.DataFrame]:
         """
         Transforma os arquivos em DataFrame para salvar no Banco de Dados.
         
@@ -90,7 +90,7 @@ class BitrixCollector:
 
         result = {}
         try:
-            for name, data in data.items():
+            for name, data in self.data.items():
                 df = pd.DataFrame(data)
                 df.columns = df.iloc[0].str.lower()
                 df = df.drop(index=df.index[0], axis=0)
