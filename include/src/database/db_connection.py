@@ -5,7 +5,7 @@ import logging
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
 
-from sqlalchemy import create_engine, event, text
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from include.src.database.db_model import Base
