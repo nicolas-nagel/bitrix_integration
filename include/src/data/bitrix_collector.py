@@ -79,7 +79,7 @@ class BitrixCollector:
             self.data = {}
             raise
                     
-    def transform_data(self) -> Dict[str, pd.DataFrame]:
+    def transform_data(self, data: Dict[str, Any]) -> Dict[str, pd.DataFrame]:
         """
         Transforma os arquivos em DataFrame para salvar no Banco de Dados.
         
@@ -90,7 +90,7 @@ class BitrixCollector:
 
         result = {}
         try:
-            for name, data in self.data.items():
+            for name, data in data.items():
                 df = pd.DataFrame(data)
                 df.columns = df.iloc[0].str.lower()
                 df = df.drop(index=df.index[0], axis=0)

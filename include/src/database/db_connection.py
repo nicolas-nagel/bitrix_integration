@@ -53,6 +53,7 @@ class AzureDataBase:
             echo=False,
         )
 
+
         self._Session = sessionmaker(bind=self.engine, autoflush=False)
         self.Base = Base
 
@@ -105,18 +106,17 @@ class AzureDataBase:
 
         try:
             num_cols = len(df.columns)
-            chunk_size = max(500, min(5000, 2000 // num_cols))
+            chunk_size = max(500, min(15000, 2000 // num_cols))
+            max_rows_multi = max(1, 2100 // num_cols)
+            chunk_size = min(chunk_size, max_rows_multi)
 
             with self.engine.begin() as conn:
 
                 try:
-                    conn.execute(f'TRUNCATE TABLE {table_name}')
+                    conn.execute(text(f'TRUNCATE TABLE {table_name}'))
                     if_exists_mode = 'append'
-                    logger.info(f'Tabela: {table_name} truncada.')
-
                 except:
                     if_exists_mode = 'replace'
-                    logger.info(f'Tabela: {table_name} será criada.')
 
                 df.to_sql(
                     name=table_name,
@@ -124,7 +124,7 @@ class AzureDataBase:
                     if_exists=if_exists_mode,
                     index=False,
                     chunksize=chunk_size,
-                    method=None
+                    method='multi'
                 )
                 logger.info(f'{len(df):.2f} dados inseridos em: {table_name}')
 

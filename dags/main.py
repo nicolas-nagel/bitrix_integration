@@ -7,7 +7,7 @@ from include.src.data.bitrix_collector import BitrixCollector
     dag_id='Pipeline_Bitrix',
     description='Pipeline de Dados das Tabelas do Bitrix para SQL Server',
     schedule='0 7,12,17,22 * * *',
-    start_date=datetime(2026, 1, 28),
+    start_date=datetime(2026, 1, 29),
     catchup=False
 )
 def pipeline():
@@ -21,22 +21,25 @@ def pipeline():
     @task
     def task_transform_data(data):
         collector = BitrixCollector()
-        return collector.transform_data()
+        return collector.transform_data(data)
 
     @task
     def task_load_crm_deal(data):
         if 'crm_deal' in data:
-            BitrixCollector().db.insert_data(data['crm_deal'], 'raw_crm_deal')
+            collector = BitrixCollector()
+            collector.db.insert_data(data['crm_deal'], 'raw_crm_deal')
 
     @task
     def task_load_crm_stage(data):
         if 'crm_deal_stage_history' in data:
-            BitrixCollector().db.insert_data(data['crm_deal_stage_history'], 'raw_crm_deal_stage_history')
+            collector = BitrixCollector()
+            collector.db.insert_data(data['crm_deal_stage_history'], 'raw_crm_deal_stage_history')
 
     @task
     def task_load_crm_user(data):
         if 'user' in data:
-            BitrixCollector().db.insert_data(data['user'], 'raw_user')
+            collector = BitrixCollector()
+            collector.db.insert_data(data['user'], 'raw_user')
 
     extracted = task_extract_data()
     transformed = task_transform_data(extracted)

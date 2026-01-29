@@ -4,6 +4,7 @@ apache-airflow-providers-odbc
 
 pyodbc
 pymssql
+pyarrow
 
 pandas
 numpy
