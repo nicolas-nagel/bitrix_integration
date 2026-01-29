@@ -34,7 +34,6 @@ class BitrixCollector:
 
         self.URL = f'https://{self.SERVER_ADDRESS}/{self.RELATIVE_PATH}?token={self.SECRET_KEY}'
         self.tables: List[str] = ['crm_deal', 'crm_deal_stage_history', 'user']
-        self.data: Dict[str, Any] = {}
 
     def start(self) -> None:
         logger.info('Iniciando Pipeline de Dados...')
@@ -62,6 +61,7 @@ class BitrixCollector:
         """
         logger.info('Iniciando Coleta de Dados...')
 
+        data: Dict[str, Any] = {}
         try:
             for table in self.tables:
                 response = requests.get(url=f'{self.URL}&table={table}')
@@ -72,11 +72,11 @@ class BitrixCollector:
                     logger.info(f'Endpoint: {table} Coletado com sucesso.')
 
             logger.info(f'{len(self.data)} arquivos coletados com sucesso.')
-            return self.data
+            return data
         
         except Exception as e:
             logger.error(f'Erro ao coletar os dados: {str(e)}')
-            self.data = {}
+            data = {}
             raise
                     
     def transform_data(self, data: Dict[str, Any]) -> Dict[str, pd.DataFrame]:
