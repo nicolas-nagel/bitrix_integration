@@ -5,7 +5,7 @@ import logging
 
 from dotenv import load_dotenv
 from typing import List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from include.src.database.db_connection import AzureDataBase
 
@@ -88,13 +88,15 @@ class BitrixCollector:
         """
         logger.info('Iniciando Transformação de Dados...')
 
+        BR_TZ = timezone(timedelta(hours=-3))
+
         result = {}
         try:
             for name, data in self.data.items():
                 df = pd.DataFrame(data)
                 df.columns = df.iloc[0].str.lower()
                 df = df.drop(index=df.index[0], axis=0)
-                df['inserted_at'] = datetime.now()
+                df['inserted_at'] = datetime.now(BR_TZ).replace(tzinfo=None, microsecond=0)
 
                 logger.info(f'Arquivo: {name} transformado com sucesso.')
                 result[name] = df
