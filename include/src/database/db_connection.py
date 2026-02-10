@@ -107,7 +107,7 @@ class AzureDataBase:
         try:
             num_cols = len(df.columns)
             chunk_size = max(500, min(15000, 2000 // num_cols))
-            max_rows_multi = max(1, 2100 // num_cols)
+            max_rows_multi = max(1, 2000 // num_cols)
             chunk_size = min(chunk_size, max_rows_multi)
 
             with self.engine.begin() as conn:
