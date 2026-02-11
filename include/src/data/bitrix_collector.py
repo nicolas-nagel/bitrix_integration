@@ -31,7 +31,7 @@ class BitrixCollector:
         self.SMART_PROCESS_ID = os.getenv('SMART_PROCESS_ID')
 
         self.URL = f'https://{self.SERVER_ADDRESS}/{self.RELATIVE_PATH}?token={self.SECRET_KEY}'
-        self.tables: List[str] = ['crm_deal', 'crm_deal_stage_history', 'user', 'crm_company', 'crm_stages', 'crm_deal_product_row']
+        self.tables: List[str] = ['crm_deal', 'crm_deal_stage_history', 'user', 'crm_company', 'crm_stages', 'crm_deal_product_row', 'crm_product']
         self.data: Dict[str, Any] = {}
 
     def start(self) -> None:
