@@ -6,7 +6,7 @@ from include.src.data.bitrix_collector import BitrixCollector
 @dag(
     dag_id='Bitrix_Pipeline',
     description='Pipeline de Dados das Tabelas do Bitrix para SQL Server',
-    schedule='0 7,12,17,22 * * *',
+    schedule='0 6 * * *',
     start_date=datetime(2026, 1, 29),
     catchup=False,
     max_active_runs=1,

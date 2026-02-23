@@ -8,8 +8,6 @@ from urllib.parse import quote_plus
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-from include.src.database.db_model import Base
-
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
@@ -53,43 +51,7 @@ class AzureDataBase:
             echo=False,
         )
 
-
         self._Session = sessionmaker(bind=self.engine, autoflush=False)
-        self.Base = Base
-
-    def create_tables(self) -> None:
-        """
-        Cria as tabelas no Banco de Dados
-        
-        Returns:
-            None: Tabelas no Banco de Dados criadas.
-        """
-        logger.info('Criando Tabelas no Banco de Dados...')
-
-        try:
-            self.Base.metadata.create_all(self.engine)
-            logger.info('Tabelas Criadas com Sucesso.')
-
-        except Exception as e:
-            logger.error(f'Erro ao criar as tabelas: {str(e)}')
-            raise
-
-    def drop_tables(self) -> None:
-        """
-        Deleta as tabelas no Banco de Dados
-        
-        Returns:
-            None: Tabelas no Banco de Dados deletadas.
-        """
-        logger.warning('Deletando TODAS as Tabelas do Banco de Dados...')
-
-        try:
-            self.Base.metadata.drop_all(self.engine)
-            logger.info('Tabelas excluídas com sucesso.')
-
-        except Exception as e:
-            logger.error(f'Erro ao deletar as tabelas: {str(e)}')
-            raise
 
     def insert_data(self, df: pd.DataFrame, table_name: str) -> None:
         """
