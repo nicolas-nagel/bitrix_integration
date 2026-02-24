@@ -9,11 +9,6 @@ from sqlalchemy import create_engine, text
 
 logger = logging.getLogger(__name__)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s | %(name)s | %(levelname)s | %(message)s'
-)
-
 class AzureDataBase:
     """Azure SQL Database Connection."""
     def __init__(self) -> None:
@@ -25,7 +20,7 @@ class AzureDataBase:
         self.db_port = os.getenv('DB_PORT')
         self.db_name = os.getenv('DB_NAME')
 
-        params = quote_plus(
+        self.params = quote_plus(
             f"DRIVER={{ODBC Driver 18 for SQL Server}};"
             f"SERVER={self.db_server};"
             f"DATABASE={self.db_name};"
