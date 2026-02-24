@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 from urllib.parse import quote_plus
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
 
 logger = logging.getLogger(__name__)
 
@@ -39,57 +38,47 @@ class AzureDataBase:
             f"MultipleActiveResultSets=True;"
         )
 
-        self.conn_string = f'mssql+pyodbc:///?odbc_connect={params}'
+        self.conn_string = f'mssql+pyodbc:///?odbc_connect={self.params}'
         self.engine = create_engine(
-            self.conn_string, 
+            self.conn_string,
             pool_pre_ping=True,
-            pool_size=5,
-            max_overflow=10,
-            pool_recycle=1800,
-            pool_timeout=120,
-            connect_args={'timeout': 120, 'connect_timeout': 120},
+            pool_size=1,
+            max_overflow=1,
+            pool_recycle=600,
+            pool_timeout=30,
+            connect_args={
+                'timeout': 60,
+                'fast_executemany': True
+            },
             echo=False,
+            isolation_level='READ UNCOMMITTED'
         )
 
-        self._Session = sessionmaker(bind=self.engine, autoflush=False)
+    def insert_data(self, data: pd.DataFrame, table_name: str, use_truncate: bool = True) -> None:
+        logger.info('Iniciando Inserção de Dados...')
 
-    def insert_data(self, df: pd.DataFrame, table_name: str) -> None:
-        """
-        Insere os Dados no Banco de Dados.
+        if data.empty:
+            raise ValueError('data não pode estar vazio ou ser None.')
         
-        Args:
-            df (pd.DataFrame): DataFrame com os Dados.
-            table_name (str): Nome da tabela que será salvo no Banco.
+        if table_name is None:
+            raise ValueError('table_name não pode ser vazio ou None.')
+        
+        with self.engine.begin() as conn:
+            try:
+                conn.execute(text(f'DROP TABLE IF EXISTS {table_name}'))
 
-        Returns:
-            None: Mensagem de sucesso, se erro, mensagem de erro.
-        """
-        logger.info('Inserindo Dados no Banco...')
-
-        try:
-            num_cols = len(df.columns)
-            chunk_size = max(500, min(15000, 2000 // num_cols))
-            max_rows_multi = max(1, 2000 // num_cols)
-            chunk_size = min(chunk_size, max_rows_multi)
-
-            with self.engine.begin() as conn:
-
-                try:
-                    conn.execute(text(f'TRUNCATE TABLE {table_name}'))
-                    if_exists_mode = 'append'
-                except:
-                    if_exists_mode = 'replace'
-
-                df.to_sql(
+                chunk_size = 5000
+                optimal_chunksize = (len(data) + chunk_size - 1) // chunk_size
+                data.to_sql(
                     name=table_name,
                     con=conn,
-                    if_exists=if_exists_mode,
                     index=False,
-                    chunksize=chunk_size,
-                    method='multi'
+                    if_exists='replace',
+                    chunksize=chunk_size
                 )
-                logger.info(f'{len(df):.2f} dados inseridos em: {table_name}')
 
-        except Exception as e:
-            logger.error(f'Erro ao inserir dados no Banco: {str(e)}')
-            raise
+                logger.info(f'{table_name} atualizada com sucesso.')
+
+            except Exception as e:
+                logger.error(f'Erro ao inserir Dados: {str(e)}')
+                raise
