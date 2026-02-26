@@ -55,24 +55,35 @@ class BitrixCollector:
 
     def transform_data(self, df: pd.DataFrame, table_name: str) -> pd.DataFrame:
         logger.info('Iniciando Transformação de Dados...')
+
+        UF_FIELDS = {
+                'crm_deal_uf': [
+                    'uf_crm_1761327651',
+                    'uf_crm_1674504869',
+                    'uf_crm_1758224216498'
+                ],
+                'crm_dynamic_items_162': [
+                    'xml_id',
+                    'title',
+                    'created_time',
+                    'closedate',
+                    'opportunity',
+                    'category_id'
+                ]
+            }
         
         BR_TZ = timezone(timedelta(hours=-3))
-        
         try:
             df['inserted_at'] = datetime.now(BR_TZ).strftime('%Y-%m-%d %H:%M:%S')
 
-            if table_name and table_name.endswith('_uf'):
+            if table_name in UF_FIELDS:
                 id_col = df.columns[0]
-                
-                df = df.melt(
-                    id_vars=[id_col, 'date_create', 'closedate'],
-                    var_name='key',
-                    value_name='value'
-                )
-                df = df[df['value'].notna() & (df['value'].str.strip() != '') & (df['value'] != 'None')]
-                
+                fields = UF_FIELDS[table_name]
+                cols_to_keep = [id_col] + [f for f in fields if f in df.columns] + ['inserted_at']
+                df = df[cols_to_keep]
+
             return df
-        
+
         except Exception as e:
             logger.error(f'Erro ao transformar arquivo: {str(e)}')
             raise
