@@ -22,24 +22,23 @@ default_args = {
     'email_on_retry': False,
     'retries': 2,
     'retry_delay': timedelta(minutes=1),
-    'execution_timeout': timedelta(minutes=60)
 }
 
 @dag(
-    dag_id='pipe_bitrix',
+    dag_id='crm_bitrix_pipeline',
     default_args=default_args,
     description='ETL paralelo das Tabelas do Bitrix',
     schedule='0 */6 * * *',
-    start_date=datetime(2026, 2, 19),
+    start_date=datetime(2026, 2, 24),
     catchup=False,
     tags=['bitrix', 'etl', 'azure'],
-    max_active_runs=1
+    max_active_runs=4
 )
 def bitrix_pipeline():
 
     @task
     def get_tables() -> List[str]:
-        TABLES = ['crm_deal_stage_history', 'crm_deal_product_row', 'crm_deal', 'crm_company', 'crm_deal_uf', 'crm_product', 'crm_stages', 'user']
+        TABLES = ['crm_deal_stage_history', 'crm_deal_product_row', 'crm_deal', 'crm_dynamic_items_162', 'crm_company', 'crm_deal_uf', 'crm_product', 'crm_stages', 'user']
 
         return TABLES
     
@@ -60,7 +59,7 @@ def bitrix_pipeline():
             extract_time = time.time() - extract_start
 
             transform_start = time.time()
-            df = api.transform_data(data)
+            df = api.transform_data(data, table_name)
             transform_time = time.time() - transform_start
 
             load_start = time.time()
@@ -86,6 +85,6 @@ def bitrix_pipeline():
                 api.db_conn.engine.dispose()
 
     config = get_tables()
-    insert_data = insert_tables_data.expand(tables=config)
+    insert_data = insert_tables_data.expand(table_name=config)
 
 bitrix_pipeline()

@@ -1,9 +1,13 @@
 import os
 import pandas as pd
+import numpy as np
 import logging
+import pyodbc
+import math
 
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
+from decimal import Decimal
 
 from sqlalchemy import create_engine, text
 
@@ -37,41 +41,83 @@ class AzureDataBase:
         self.engine = create_engine(
             self.conn_string,
             pool_pre_ping=True,
-            pool_size=1,
-            max_overflow=1,
+            pool_size=3,
+            max_overflow=2,
             pool_recycle=600,
-            pool_timeout=30,
-            connect_args={
-                'timeout': 60,
-                'fast_executemany': True
-            },
+            pool_timeout=60,
             echo=False,
             isolation_level='READ UNCOMMITTED'
         )
 
-    def insert_data(self, data: pd.DataFrame, table_name: str, use_truncate: bool = True) -> None:
+    def _create_table(self, df: pd.DataFrame, table_name: str, conn) -> None:
+        """Cria tabela com todas as colunas como NVARCHAR(MAX) para evitar problemas de tipo."""
+        use_sparse = len(df.columns) > 100
+    
+        col_defs = []
+        for i, col in enumerate(df.columns):
+            max_len = df[col].dropna().str.len().max()
+            max_len = int(max_len) if pd.notna(max_len) else 1
+
+            if max_len > 4000:
+                col_defs.append(f'[{col}] NVARCHAR(MAX)')
+            elif i == 0 or not use_sparse:
+                col_defs.append(f'[{col}] NVARCHAR(4000)')
+            else:
+                col_defs.append(f'[{col}] NVARCHAR(4000) SPARSE NULL')
+
+        cols_sql = ',\n'.join(col_defs)
+        conn.execute(text(f'CREATE TABLE {table_name} (\n{cols_sql}\n)'))
+        
+        if any('NVARCHAR(MAX)' in d for d in col_defs):
+            conn.execute(text(f"EXEC sp_tableoption '{table_name}', 'large value types out of row', 1"))
+
+    def insert_data(self, data: pd.DataFrame, table_name: str, incremental: bool = False) -> None:
         logger.info('Iniciando Inserção de Dados...')
 
-        if data.empty:
-            raise ValueError('data não pode estar vazio ou ser None.')
-        
-        if table_name is None:
-            raise ValueError('table_name não pode ser vazio ou None.')
-        
         with self.engine.begin() as conn:
             try:
-                conn.execute(text(f'DROP TABLE IF EXISTS {table_name}'))
+                if not incremental:
+                    conn.execute(text(f'DROP TABLE IF EXISTS {table_name}'))
+                    self._create_table(data, table_name, conn)
+                else:
+                    # Só insere se a tabela já existe
+                    conn.execute(text(f'''
+                        IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='{table_name}')
+                        BEGIN
+                            {self._get_create_sql(data, table_name)}
+                        END
+                    '''))
 
-                chunk_size = 5000
-                optimal_chunksize = (len(data) + chunk_size - 1) // chunk_size
-                data.to_sql(
-                    name=table_name,
-                    con=conn,
-                    index=False,
-                    if_exists='replace',
-                    chunksize=chunk_size
-                )
+                raw_conn = conn.connection.dbapi_connection
+                cursor = raw_conn.cursor()
+                cursor.fast_executemany = True
 
+                cols = ', '.join([f'[{c}]' for c in data.columns])
+                placeholders = ', '.join(['?' for _ in data.columns])
+
+                if incremental:
+                    # Upsert: atualiza se existe, insere se não existe
+                    id_col = data.columns[0]
+                    update_cols = ', '.join([f'target.[{c}] = source.[{c}]' for c in data.columns if c != id_col])
+                    sql = f'''
+                        MERGE {table_name} AS target
+                        USING (VALUES ({placeholders})) AS source ({cols})
+                        ON target.[{id_col}] = source.[{id_col}]
+                        WHEN MATCHED THEN UPDATE SET {update_cols}
+                        WHEN NOT MATCHED THEN INSERT ({cols}) VALUES ({placeholders});
+                    '''
+                else:
+                    sql = f'INSERT INTO {table_name} ({cols}) VALUES ({placeholders})'
+
+                chunk_size = min(50000, max(5000, len(data) // 100))
+                rows = [[None if pd.isna(v) else v for v in row] for row in data.itertuples(index=False, name=None)]
+
+                for i in range(0, len(rows), chunk_size):
+                    cursor.executemany(sql, rows[i:i + chunk_size])
+                    raw_conn.commit()
+                    logger.info(f'Inseridos {min(i + chunk_size, len(rows)):,} / {len(rows):,}')
+
+                cursor.close()
                 logger.info(f'{table_name} atualizada com sucesso.')
 
             except Exception as e:
