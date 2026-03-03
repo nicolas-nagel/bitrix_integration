@@ -51,7 +51,7 @@ def bitrix_pipeline():
         task_start = time.time()
 
         try:
-            full_table_name = f'raw_{table_name}'
+            full_table_name = f'raw_bitrix_{table_name}'
             api = BitrixCollector()
 
             extract_start = time.time()

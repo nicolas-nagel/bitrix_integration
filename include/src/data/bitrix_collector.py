@@ -4,7 +4,6 @@ import pandas as pd
 import logging
 
 from dotenv import load_dotenv
-from typing import List, Dict, Any
 from datetime import datetime, timezone, timedelta
 from requests.exceptions import HTTPError
 
@@ -60,7 +59,11 @@ class BitrixCollector:
                 'crm_deal_uf': [
                     'uf_crm_1761327651',
                     'uf_crm_1674504869',
-                    'uf_crm_1758224216498'
+                    'uf_crm_1758224216498',
+                    'uf_crm_1672781757',
+                    'uf_crm_1672781723',
+                    'uf_crm_1673994278222',
+                    'uf_crm_63c14d3c80814'
                 ],
                 'crm_dynamic_items_162': [
                     'xml_id',

@@ -3,11 +3,9 @@ import pandas as pd
 import numpy as np
 import logging
 import pyodbc
-import math
 
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
-from decimal import Decimal
 
 from sqlalchemy import create_engine, text
 
