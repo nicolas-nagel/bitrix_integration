@@ -52,6 +52,7 @@ def bitrix_pipeline():
 
         try:
             full_table_name = f'raw_bitrix_{table_name}'
+            
             api = BitrixCollector()
 
             extract_start = time.time()

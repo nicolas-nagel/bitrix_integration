@@ -78,11 +78,12 @@ class BitrixCollector:
         BR_TZ = timezone(timedelta(hours=-3))
         try:
             df['inserted_at'] = datetime.now(BR_TZ).strftime('%Y-%m-%d %H:%M:%S')
+            df['system_source'] = 'bitrix'
 
             if table_name in UF_FIELDS:
                 id_col = df.columns[0]
                 fields = UF_FIELDS[table_name]
-                cols_to_keep = [id_col] + [f for f in fields if f in df.columns] + ['inserted_at']
+                cols_to_keep = [id_col] + [f for f in fields if f in df.columns] + ['inserted_at'] + ['system_source']
                 df = df[cols_to_keep]
 
             return df
