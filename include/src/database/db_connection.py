@@ -50,15 +50,20 @@ class AzureDataBase:
     def _create_table(self, df: pd.DataFrame, table_name: str, conn) -> None:
         """Cria tabela com todas as colunas como NVARCHAR(MAX) para evitar problemas de tipo."""
         cols_sql = ',\n'.join([f'[{col}] NVARCHAR(MAX)' for col in df.columns])
-        conn.execute(text(f'CREATE TABLE {table_name} (\n{cols_sql}\n)'))
-        conn.execute(text(f"EXEC sp_tableoption '{table_name}', 'large value types out of row', 1"))
+        conn.execute(text(f'CREATE TABLE bronze.{table_name} (\n{cols_sql}\n)'))
+        conn.execute(text(f"EXEC sp_tableoption 'bronze.{table_name}', 'large value types out of row', 1"))
+
+    def _create_schema(self, conn) -> None:
+        """Cria o schema bronze para as tabelas se não existir."""
+        conn.execute(text(f"IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'bronze') BEGIN EXEC('CREATE SCHEMA bronze'); END"))
 
     def insert_data(self, data: pd.DataFrame, table_name: str) -> None:
         logger.info('Iniciando Inserção de Dados...')
 
         with self.engine.begin() as conn:
             try:
-                conn.execute(text(f'DROP TABLE IF EXISTS {table_name}'))
+                self._create_schema(conn)
+                conn.execute(text(f'DROP TABLE IF EXISTS bronze.{table_name}'))
                 self._create_table(data, table_name, conn)
 
                 raw_conn = conn.connection.dbapi_connection
@@ -67,7 +72,7 @@ class AzureDataBase:
 
                 cols = ', '.join([f'[{c}]' for c in data.columns])
                 placeholders = ', '.join(['?' for _ in data.columns])
-                sql = f'INSERT INTO {table_name} ({cols}) VALUES ({placeholders})'
+                sql = f'INSERT INTO bronze.{table_name} ({cols}) VALUES ({placeholders})'
 
                 chunk_size = 5000
                 total = len(data)

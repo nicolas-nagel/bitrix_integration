@@ -1,7 +1,7 @@
 import logging
 import time
 
-from typing import List
+from typing import Dict, List
 from datetime import datetime, timedelta
 
 from airflow.sdk import dag, task
@@ -36,22 +36,33 @@ default_args = {
 )
 def bitrix_pipeline():
 
+    TABLES_NAMES = {
+        'crm_deal_stage_history': 'deal_stage_history',
+        'crm_deal_product_row': 'deal_product_row',
+        'crm_deal': 'deal',
+        'crm_dynamic_items_162': 'dynamic_items_162',
+        'crm_company': 'company',
+        'crm_deal_uf': 'deal_uf',
+        'crm_product': 'product',
+        'crm_stages': 'stages',
+        'user': 'user'
+    }
+    
     @task
-    def get_tables() -> List[str]:
-        TABLES = ['crm_deal_stage_history', 'crm_deal_product_row', 'crm_deal', 'crm_dynamic_items_162', 'crm_company', 'crm_deal_uf', 'crm_product', 'crm_stages', 'user']
-
-        return TABLES
+    def get_table_names() -> List[str]:
+        return list(TABLES_NAMES.keys())
     
     @task(
             retries=3,
             retry_delay=timedelta(seconds=30),
             pool='default_pool'
     )
-    def insert_tables_data(table_name: str):
+    def insert_tables_data(table_name: str, tables_map: Dict[str, str]):
+        api = None
         task_start = time.time()
 
         try:
-            full_table_name = f'raw_bitrix_{table_name}'
+            full_table_name = f'bronze_bitrix_{tables_map[table_name]}'
             
             api = BitrixCollector()
 
@@ -82,10 +93,10 @@ def bitrix_pipeline():
             raise
 
         finally:
-            if hasattr(api.db_conn, 'engine'):
+            if api and hasattr(api, 'db_conn') and hasattr(api.db_conn, 'engine'):
                 api.db_conn.engine.dispose()
 
-    config = get_tables()
-    insert_data = insert_tables_data.expand(table_name=config)
+    tables_names = get_table_names()
+    insert_data = insert_tables_data.partial(tables_map=TABLES_NAMES).expand(table_name=tables_names)
 
 bitrix_pipeline()
